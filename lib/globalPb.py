@@ -16,8 +16,9 @@ def globalPb(imgFile, outFile = '', rsz = 1.0):
 	# im.load()
 	# data = np.asarray(im, dtype= "int64")
 	bgr_im = cv2.imread(imgFile)
-	b,g,r = cv2.split(bgr_im)       # get b,g,r
-	im = cv2.merge([r,g,b])			# covert to r,g,b
+	# b,g,r = cv2.split(bgr_im)       # get b,g,r
+	# im = cv2.merge([r,g,b])			# covert to r,g,b
+	im = bgr_im[..., ::-1]
 	im = im/255
 	[tx, ty, nchan] = im.shape
 	orig_sz = [tx, ty]
