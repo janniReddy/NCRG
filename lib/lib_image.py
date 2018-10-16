@@ -104,4 +104,6 @@ def quantize_values(src, n_bins):
     return dest
 
 def texton_filters(parameter_list):
-    pass
+    """computes texton filters"""
+    
+    
