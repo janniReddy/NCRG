@@ -1,7 +1,10 @@
 import numpy as np
 import cv2
 import math
+import scipy.signal
 
+from oe_filters import oe_filters
+from textons import textons
 
 def grayscale(L, a, b):
     """Compute a grayscale image from an RGB image."""
@@ -103,7 +106,83 @@ def quantize_values(src, n_bins):
             dest[i][j] = d_bin
     return dest
 
-def texton_filters(parameter_list):
+def texton_filters(n_ori):
     """computes texton filters"""
+    start_sigma = 1
+    num_scales = 2
+    scaling = math.sqrt(2)
+    elongation = 2
+    support = 3
+    filter_bank = np.zeros((len(range(1, n_ori + 1))*2, len(range(1, num_scales + 1)))).tolist()
+    for idx0, scale in enumerate(range(1, num_scales + 1)):
+        sigma = start_sigma * (scaling**(scale - 1))
+        for orient in range(1, n_ori + 1):
+            theta = (orient-1)/float(n_ori) * math.pi
+            filter_bank[(2*orient)-2][idx0] = oe_filters([sigma*elongation, sigma], support, theta, 2, 0)
+            filter_bank[(2*orient)-1][idx0] = oe_filters([sigma*elongation, sigma], support, theta, 2, 1)
+
+    return filter_bank
+
+def compute_textons(g_im, border, filters, k):
+    return textons(g_im, border, filters, k)
+
+def gaussian(sigma = 1, deriv = 0, hlbrt = False):
+    """
+    * Gaussian kernel (1D).
+    *
+    * Specify the standard deviation and (optionally) the support.
+    * The length of the returned vector is 2*support + 1.
+    * The support defaults to 3*sigma.
+    * The kernel is normalized to have unit L1 norm.
+    * If returning a 1st or 2nd derivative, the kernel has zero mean."""
+    support = math.ceil(3*sigma)
+    # enlarge support so that hilbert transform can be done efficiently
+    support_big = support
+    if hlbrt:
+        support_big = 1
+        temp = support
+        while temp > 0:
+            support_big *= 2
+            temp /= 2
+
+    # compute constants
+    sigma2_inv = 1/(sigma * sigma)
+    neg_two_sigma2_inv = (-0.5) * sigma2_inv
+    # compute gaussian (or gaussian derivative)
+    size = 2 * support_big + 1
+    m = np.zeros((size))
+    print(m.shape)
+    x = -(support_big)
+    if deriv == 0:
+        # compute gaussian
+        for n in range(0, size):
+            m[n] = math.exp(x * x * neg_two_sigma2_inv)
+            x += 1
+    elif deriv == 1:
+        # compute gaussian first derivative
+        for n in range(0, size):
+            m[n] = math.exp(x * x * neg_two_sigma2_inv) * (-x)
+            x += 1
+    elif deriv == 2:
+        # compute gaussian second derivative
+        for n in range(0, size):
+            x2 = x * x
+            m[n] = math.exp(x2 * neg_two_sigma2_inv) * (x2 * sigma2_inv -1)
+            x += 1
+    else:
+        print(" only derivatives 0,1,2 supported")
+
+    # take hilbert transform (if requested)
+    if hlbrt:
+        # grab power of two sized submatrix (ignore last element)
+        m = scipy.signal.hilbert(m).imag
     
-    
+    #zero mean
+    if deriv>0:
+        m = m - np.mean(m)
+
+    #unit L1-norm
+    sumf = np.sum(np.abs(m))
+    if sumf>0:
+        m = m / sumf
+    return m
