@@ -261,4 +261,28 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
         slice_hist[i] = np.zeros((hist_length))
     # build orientation slice lookup map 
     slice_map = orientation_slice_map(w_size_x, w_size_y, n_ori)
+    # compute histograms and histogram differences at each location
+    # compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice_hist, gradients)
 
+    return gradients
+
+
+
+
+def orientation_slice_map(size_x, size_y, n_ori):
+    # Initialize map
+    slice_map = np.zeros((size_x, size_y))
+    # compute orientation of each element from center
+    x = -(size_x) / 2
+    for n_x in range(0,size_x):
+        y = -(size_y) / 2
+        for n_y in range(0, size_y):
+            # compute orientation index
+            ori = math.atan2(y, x) + math.pi
+            idx = ori / math.pi * n_ori
+            if idx >= (2 * n_ori):
+                idx = 2 * n_ori -1
+            slice_map[n_x][n_y] = idx
+            y += 1
+        x += 1
+    return slice_map
