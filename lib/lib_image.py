@@ -135,6 +135,7 @@ def gaussian(sigma = 1, deriv = 0, hlbrt = False):
     * The support defaults to 3*sigma.
     * The kernel is normalized to have unit L1 norm.
     * If returning a 1st or 2nd derivative, the kernel has zero mean."""
+    print("inside gaussian function")
     support = math.ceil(3*sigma)
     # enlarge support so that hilbert transform can be done efficiently
     support_big = support
@@ -185,4 +186,79 @@ def gaussian(sigma = 1, deriv = 0, hlbrt = False):
     sumf = np.sum(np.abs(m))
     if sumf>0:
         m = m / sumf
+    
     return m
+
+def border_trim_2D(m, r):
+    return m[r:-r,r:-r]
+
+def weight_matrix_disc(r):
+    """Construct weight matrix for circular disc of the given radius."""
+    # initialize weights array
+    size = 2 * r + 1
+    weights = np.zeros((size, size))
+    # set values in disc to 1
+    radius = r
+    r_sq = radius * radius
+    for x in range(-radius, radius + 1):
+        x_sq = x * x
+        for y in range(-radius, radius + 1):
+            # check if index is within disc
+            y_sq = y * y
+            if ((x_sq + y_sq) <= r_sq):
+                weights[abs(x)][abs(y)] = 1
+    return weights
+
+
+
+
+def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
+    """* Compute the distance between histograms of label values in oriented
+    * half-dics of the specified radius centered at each location in the 2D
+    * matrix.  Return one distance matrix per orientation.
+    *
+    * Alternatively, instead of specifying label values at each point, the user
+    * may specify a histogram at each point, in which case the histogram for
+    * a half-disc is the sum of the histograms at points in that half-disc.
+    *
+    * The half-disc orientations are k*pi/n for k in [0,n) where n is the 
+    * number of orientation requested.
+    *
+    * The user may optionally specify a nonempty 1D smoothing kernel to 
+    * convolve with histograms prior to computing the distance between them.
+    *
+    * The user may also optionally specify a custom functor for computing the
+    * distance between histograms."""
+    # construct weight matrix for circular disc
+    weights = weight_matrix_disc(r)
+
+    # check arguments - weights
+    if len(weights.shape) != 2:
+        print("weight matrix must be 2D")
+        return
+
+    # check arguments - labels
+    if len(labels.shape) != 2:
+        print("label matrix must be 2D")
+        return
+
+    w_size_x = weights.shape[0]
+    w_size_y = weights.shape[1]
+
+    if (((w_size_x/2) == ((w_size_x+1)/2)) or ((w_size_y/2) == ((w_size_y+1)/2))):
+        print ("dimensions of weight matrix must be odd")
+
+    # allocate result gradient
+    gradients = np.zeros((n_ori)).tolist()
+    
+    # check that result is nontrivial
+    if n_ori == 0:
+        return gradients
+    # to hold histograms of each slice
+    slice_hist = np.zeros((2 * n_ori)).tolist()
+    hist_length = labels.max() + 1
+    for i in range(0, 2*n_ori):
+        slice_hist[i] = np.zeros((hist_length))
+    # build orientation slice lookup map 
+    slice_map = orientation_slice_map(w_size_x, w_size_y, n_ori)
+
