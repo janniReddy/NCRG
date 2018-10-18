@@ -263,7 +263,22 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
     slice_map = orientation_slice_map(w_size_x, w_size_y, n_ori)
     # compute histograms and histogram differences at each location
     # compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice_hist, gradients)
-
+    # get label matrix size
+    size0_x = labels.shape[0]
+    size0_y = labels.shape[1]
+    # get window size
+    size1_x = weights.shape[0]
+    size1_y = weights.shape[1]
+    # set start position for gradient matrices
+    pos_start_x = size1_x/2
+    pos_start_y = size1_y/2
+    pos_bound_y = pos_start_y + size0_y
+    # initialize position in result
+    pos_x = pos_start_x
+    pos_y = pos_start_y
+    # compute initial range of offset_x
+    offset_min_x = ((pos_x + 1) > size0_x) ? (pos_x + 1 - size0_x) : 0
+    offset_max_x = (pos_x < size1_x) ? pos_x : (size1_x - 1)
     return gradients
 
 
