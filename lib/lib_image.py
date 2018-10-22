@@ -192,6 +192,20 @@ def gaussian(sigma = 1, deriv = 0, hlbrt = False):
 def border_trim_2D(m, r):
     return m[r:-r,r:-r]
 
+def convert2OneD(src):
+    """converts a 2 dimensional array to 1 dimensional"""
+    print("inside convert2OneD")
+    nrows = src.shape[0]
+    ncols = src.shape[1]
+    res = np.zeros((nrows * ncols))
+    for i in range(0, nrows):
+        for j in range(0, ncols):
+            res[n] = src[i][j]
+            n += 1
+    print("before shape printed")
+    print(res.shape())
+    return res
+
 def weight_matrix_disc(r):
     """Construct weight matrix for circular disc of the given radius."""
     # initialize weights array
@@ -256,7 +270,7 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
         return gradients
     # to hold histograms of each slice
     slice_hist = np.zeros((2 * n_ori)).tolist()
-    hist_length = labels.max() + 1
+    hist_length = int(labels.max() + 1)
     for i in range(0, 2*n_ori):
         slice_hist[i] = np.zeros((hist_length))
     # build orientation slice lookup map 
@@ -277,14 +291,19 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
     pos_x = pos_start_x
     pos_y = pos_start_y
     # compute initial range of offset_x
-    offset_min_x = ((pos_x + 1) > size0_x) ? (pos_x + 1 - size0_x) : 0
-    offset_max_x = (pos_x < size1_x) ? pos_x : (size1_x - 1)
+    # if (pos_x + 1) > size0_x:
+    #     offset_min_x = pos_x + 1 - size0_x
+    # else
+    #     offset_min_x = 0
+    
+    # offset_max_x = (pos_x < size1_x) ? pos_x : (size1_x - 1)
     return gradients
 
 
 
 
 def orientation_slice_map(size_x, size_y, n_ori):
+    print("inside orientation_slice_map")
     # Initialize map
     slice_map = np.zeros((size_x, size_y))
     # compute orientation of each element from center
@@ -294,10 +313,13 @@ def orientation_slice_map(size_x, size_y, n_ori):
         for n_y in range(0, size_y):
             # compute orientation index
             ori = math.atan2(y, x) + math.pi
-            idx = ori / math.pi * n_ori
+            idx = int(math.floor(ori / math.pi * float(n_ori)))
             if idx >= (2 * n_ori):
                 idx = 2 * n_ori -1
             slice_map[n_x][n_y] = idx
             y += 1
         x += 1
+    print("before slicemap output")
+    print(slice_map.shape)
+    print(slice_map)
     return slice_map
