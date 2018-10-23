@@ -93,9 +93,44 @@ def pb_parts_final_selected(L, a, b):
     # compute bg at each radius
     print("computing bg's")
     bg_r3 = hist_gradient_2D(Lq, r_bg[0], n_ori, bg_smooth_kernel)
-    # bg_r5 = hist_gradient_2D(Lq, r_bg[1], n_ori, bg_smooth_kernel)
-    # bg_r10 = hist_gradient_2D(Lq, r_bg[2], n_ori, bg_smooth_kernel)
+    bg_r5 = hist_gradient_2D(Lq, r_bg[1], n_ori, bg_smooth_kernel)
+    bg_r10 = hist_gradient_2D(Lq, r_bg[2], n_ori, bg_smooth_kernel)
     print ("after bg_r3 computing")
-    print (bg_r3.shape)
+    print (len(bg_r3))
+    print(bg_r3[0].shape)
+    for n in range(0, n_ori):
+        bg_r3[n] = border_trim_2D(bg_r3[n], border)
+        bg_r5[n] = border_trim_2D(bg_r3[n], border)
+        bg_r10[n] = border_trim_2D(bg_r3[n], border)
+    
+    # compute cga at each radius
+    print("computing cga's")
+    cga_r5 = hist_gradient_2D(aq, r_cg[0], n_ori, cga_smooth_kernel)
+    cga_r10 = hist_gradient_2D(aq, r_cg[1], n_ori, cga_smooth_kernel)
+    cga_r20 = hist_gradient_2D(aq, r_cg[2], n_ori, cga_smooth_kernel)
+    for n in range(0, n_ori):
+        cga_r5[n] = border_trim_2D(cga_r5[n], border)
+        cga_r10[n] = border_trim_2D(cga_r10[n], border)
+        cga_r20[n] = border_trim_2D(cga_r20[n], border)
 
-    return [0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0]
+    # compute cgb at each radius 
+    print("computing cgb's")
+    cgb_r5 = hist_gradient_2D(bq, r_cg[0], n_ori, cgb_smooth_kernel)
+    cgb_r10 = hist_gradient_2D(bq, r_cg[1], n_ori, cgb_smooth_kernel)
+    cgb_r20 = hist_gradient_2D(bq, r_cg[2], n_ori, cgb_smooth_kernel)
+    for n in range(0, n_ori):
+        cgb_r5[n] = border_trim_2D(cgb_r5[n], border)
+        cgb_r10[n] = border_trim_2D(cgb_r10[n], border)
+        cgb_r20[n] = border_trim_2D(cgb_r20[n], border)
+    
+    # compute tg at each radius
+    print("computing tg's")
+    tg_r5 = hist_gradient_2D(t_assign, r_tg[0], n_ori)
+    tg_r10 = hist_gradient_2D(t_assign, r_tg[1], n_ori)
+    tg_r20 = hist_gradient_2D(t_assign, r_tg[2], n_ori)
+    for n in range(0, n_ori):
+        tg_r5[n] = border_trim_2D(tg_r5[n], border)
+        tg_r10[n] = border_trim_2D(tg_r10[n], border)
+        tg_r20[n] = border_trim_2D(tg_r20[n], border)
+
+    return [textons, bg_r3, bg_r5,  bg_r10,  cga_r5, cga_r10, cga_r20, cgb_r5, cgb_r10, cgb_r20, tg_r5,  tg_r10,  tg_r20]

@@ -292,6 +292,8 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
     labels_1D = convert2OneD(labels)
     # compute histograms and histogram differences at each location
     gradients = compute_hist_gradient_2D(labels_1D, weights, slice_map, smoothing_kernel, slice_hist, n_ori, label_nrows, label_ncols, w_size_x, w_size_y)
+    for no in range(0, n_ori):
+        gradients[no] = convert2TwoD(gradients[no], label_nrows, label_ncols)
     return gradients
 
 def compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice_hist, n_ori, size0_x, size0_y, size1_x, size1_y):
@@ -303,25 +305,25 @@ def compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice
         gradients[i] = np.zeros((size0_x * size0_y))
     
     # set start position for gradient matrices
-    pos_start_x = size1_x/2
-    pos_start_y = size1_y/2
-    pos_bound_y = pos_start_y + size0_y
+    pos_start_x = int(size1_x/2)
+    pos_start_y = int(size1_y/2)
+    pos_bound_y = int(pos_start_y + size0_y)
     # initialize position in result
-    pos_x = pos_start_x
-    pos_y = pos_start_y
+    pos_x = int(pos_start_x)
+    pos_y = int(pos_start_y)
     # compute initial range of offset_x
     if (pos_x + 1) > size0_x:
-        offset_min_x = pos_x + 1 - size0_x
+        offset_min_x = int(pos_x + 1 - size0_x)
     else:
         offset_min_x = 0
     
     if pos_x < size1_x:
-        offset_max_x = pos_x
+        offset_max_x = int(pos_x)
     else:
-        offset_max_x = size1_x - 1
+        offset_max_x = int(size1_x - 1)
 
-    ind0_start_x = (pos_x - offset_min_x) * size0_y
-    ind1_start_x = (offset_min_x) * size1_y
+    ind0_start_x = int((pos_x - offset_min_x) * size0_y)
+    ind1_start_x = int((offset_min_x) * size1_y)
     size = labels.size
     # determine whether to use smoothing kernel
     use_smoothing = not (smoothing_kernel.size == 0)
@@ -330,33 +332,35 @@ def compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice
     # allocate half disc histograms
     hist_left = np.zeros((slice_hist[0].shape))
     hist_right = np.zeros((slice_hist[0].shape))
+    print(size)
     for n in range(0, size):
+        # print(n)
         # compute range of offset_y
         if (pos_y + 1) > size0_y:
-            offset_min_y = pos_y + 1 - size0_y
+            offset_min_y = int(pos_y + 1 - size0_y)
         else:
             offset_min_y = 0
         
         if pos_y < size1_y:
-            offset_max_y = pos_y
+            offset_max_y = int(pos_y)
         else:
-            offset_max_y = size1_y - 1
+            offset_max_y = int(size1_y - 1)
         
         offset_range_y = offset_max_y - offset_min_y
         # initialize indices
-        ind0 = ind0_start_x + (pos_y - offset_min_y)
-        ind1 = ind1_start_x + offset_min_y
+        ind0 = int(ind0_start_x + (pos_y - offset_min_y))
+        ind1 = int(ind1_start_x + offset_min_y)
 
         # update histograms
         for o_x in range(offset_min_x, offset_max_x + 1):
             for o_y in range(offset_min_y, offset_max_y):
                 # update histogram value 
-                slice_hist[slice_map[ind1]][labels[ind0]] += weights[ind1]
+                slice_hist[int(slice_map[ind1])][int(labels[ind0])] += weights[ind1]
                 # update linear positions
                 ind0 -= 1
                 ind1 += 1
             # update last histogram value
-            slice_hist[slice_map[ind1]][labels[ind0]] += weights[ind1]
+            slice_hist[int(slice_map[ind1])][int(labels[ind0])] += weights[ind1]
             # update linear positions
             ind0 = ind0 + offset_range_y - size0_y
             ind1 = ind1 - offset_range_y + size1_y
@@ -423,19 +427,24 @@ def X2_distance(m0, m1):
 
 def conv_in_place_1D(m0, m1):
     """Compute convolution in place (for 1D matrices)"""
+    # print("inside conv_in_place_1D function")
     # get size of each matrix
-    size0 = m0.size()
-    size1 = m1.size()
+    size0 = m0.size
+    size1 = m1.size
     # set dimensions for result matrix no larger than left input
     if (size0 > 0) and (size1 > 0):
         size = size0
     else:
         size = 0
     # set start position for result matrix no larger than left input
-    pos_start = size1/2
+    pos_start = int(size1/2)
     # initialize position in result
     pos = pos_start
     m = np.zeros((m0.shape))
+    # print ("before entering into loop")
+    # print(size)
+    # print(size0)
+    # print(size1)
     for n in range(0, size):
         # compute range of offset
         if (pos + 1) > size0:
@@ -444,16 +453,16 @@ def conv_in_place_1D(m0, m1):
             offset_min = 0
         
         if pos < size1:
-            offset_max = pos
+            offset_max = int(pos)
         else:
-            offset_max = size1 - 1
+            offset_max = int(size1 - 1)
         
         # multiply and add corresponing elements
         ind0 = pos - offset_min
-        ind1 = offset_min
+        ind1 = int(offset_min)
         while ind1 <= offset_max:
             # update result value
-            m[n] += m0[ind0] * m1[ind1]
+            m[n] += m0[int(ind0)] * m1[int(ind1)]
             # update linear positions
             ind0 -= 1
             ind1 += 1
@@ -476,7 +485,7 @@ def orientation_slice_map(size_x, size_y, n_ori):
             idx = int(math.floor(ori / math.pi * float(n_ori)))
             if idx >= (2 * n_ori):
                 idx = 2 * n_ori -1
-            slice_map[ind] = idx
+            slice_map[ind] = int(idx)
             ind += 1
             y += 1
         x += 1
