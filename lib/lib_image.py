@@ -193,34 +193,47 @@ def border_trim_2D(m, r):
     return m[r:-r,r:-r]
 
 def convert2OneD(src):
-    """converts a 2 dimensional array to 1 dimensional"""
+    """converts a 2 dimensional numpy array to 1 dimensional numpy array"""
     print("inside convert2OneD")
     nrows = src.shape[0]
     ncols = src.shape[1]
     res = np.zeros((nrows * ncols))
+    n = 0
     for i in range(0, nrows):
         for j in range(0, ncols):
             res[n] = src[i][j]
             n += 1
     print("before shape printed")
-    print(res.shape())
+    print(res.shape)
+    return res
+
+def convert2TwoD(src, nrows, ncols):
+    """converts a 1 dimensional numpy array to 2 dimensional numpy array"""
+    res = np.zeros((nrows, ncols))
+    ind = 0
+    for i in range(0, nrows):
+        for j in range(0, ncols):
+            res[i][j] = src[ind]
+            ind += 1
     return res
 
 def weight_matrix_disc(r):
     """Construct weight matrix for circular disc of the given radius."""
     # initialize weights array
     size = 2 * r + 1
-    weights = np.zeros((size, size))
+    weights = np.zeros((size * size))
     # set values in disc to 1
-    radius = r
+    radius = int(r)
     r_sq = radius * radius
+    ind = 0
     for x in range(-radius, radius + 1):
         x_sq = x * x
         for y in range(-radius, radius + 1):
             # check if index is within disc
             y_sq = y * y
             if ((x_sq + y_sq) <= r_sq):
-                weights[abs(x)][abs(y)] = 1
+                weights[ind] = 1
+            ind += 1       
     return weights
 
 
@@ -246,28 +259,29 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
     # construct weight matrix for circular disc
     weights = weight_matrix_disc(r)
 
-    # check arguments - weights
-    if len(weights.shape) != 2:
-        print("weight matrix must be 2D")
-        return
+    # # check arguments - weights
+    # if len(weights.shape) != 2:
+    #     print("weight matrix must be 2D")
+    #     return
 
     # check arguments - labels
     if len(labels.shape) != 2:
         print("label matrix must be 2D")
         return
 
-    w_size_x = weights.shape[0]
-    w_size_y = weights.shape[1]
-
+    w_size_x = 2 * r + 1
+    w_size_y = 2 * r + 1
+    label_nrows = labels.shape[0]
+    label_ncols = labels.shape[1]
     if (((w_size_x/2) == ((w_size_x+1)/2)) or ((w_size_y/2) == ((w_size_y+1)/2))):
         print ("dimensions of weight matrix must be odd")
 
     # allocate result gradient
-    gradients = np.zeros((n_ori)).tolist()
+    grad_temp = np.zeros((n_ori)).tolist()
     
     # check that result is nontrivial
     if n_ori == 0:
-        return gradients
+        return grad_temp
     # to hold histograms of each slice
     slice_hist = np.zeros((2 * n_ori)).tolist()
     hist_length = int(labels.max() + 1)
@@ -275,14 +289,19 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
         slice_hist[i] = np.zeros((hist_length))
     # build orientation slice lookup map 
     slice_map = orientation_slice_map(w_size_x, w_size_y, n_ori)
+    labels_1D = convert2OneD(labels)
     # compute histograms and histogram differences at each location
-    # compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice_hist, gradients)
-    # get label matrix size
-    size0_x = labels.shape[0]
-    size0_y = labels.shape[1]
-    # get window size
-    size1_x = weights.shape[0]
-    size1_y = weights.shape[1]
+    gradients = compute_hist_gradient_2D(labels_1D, weights, slice_map, smoothing_kernel, slice_hist, n_ori, label_nrows, label_ncols, w_size_x, w_size_y)
+    return gradients
+
+def compute_hist_gradient_2D(labels, weights, slice_map, smoothing_kernel, slice_hist, n_ori, size0_x, size0_y, size1_x, size1_y):
+    """Compute histograms and histogram differences at each location."""
+    # allocate result gradient
+    gradients = np.zeros((n_ori)).tolist()
+
+    for i in range(0, n_ori):
+        gradients[i] = np.zeros((size0_x * size0_y))
+    
     # set start position for gradient matrices
     pos_start_x = size1_x/2
     pos_start_y = size1_y/2
@@ -291,22 +310,163 @@ def hist_gradient_2D(labels, r, n_ori, smoothing_kernel):
     pos_x = pos_start_x
     pos_y = pos_start_y
     # compute initial range of offset_x
-    # if (pos_x + 1) > size0_x:
-    #     offset_min_x = pos_x + 1 - size0_x
-    # else
-    #     offset_min_x = 0
+    if (pos_x + 1) > size0_x:
+        offset_min_x = pos_x + 1 - size0_x
+    else:
+        offset_min_x = 0
     
-    # offset_max_x = (pos_x < size1_x) ? pos_x : (size1_x - 1)
+    if pos_x < size1_x:
+        offset_max_x = pos_x
+    else:
+        offset_max_x = size1_x - 1
+
+    ind0_start_x = (pos_x - offset_min_x) * size0_y
+    ind1_start_x = (offset_min_x) * size1_y
+    size = labels.size
+    # determine whether to use smoothing kernel
+    use_smoothing = not (smoothing_kernel.size == 0)
+    temp_conv = np.zeros((slice_hist[0].shape))
+    size_hist = slice_hist[0].size
+    # allocate half disc histograms
+    hist_left = np.zeros((slice_hist[0].shape))
+    hist_right = np.zeros((slice_hist[0].shape))
+    for n in range(0, size):
+        # compute range of offset_y
+        if (pos_y + 1) > size0_y:
+            offset_min_y = pos_y + 1 - size0_y
+        else:
+            offset_min_y = 0
+        
+        if pos_y < size1_y:
+            offset_max_y = pos_y
+        else:
+            offset_max_y = size1_y - 1
+        
+        offset_range_y = offset_max_y - offset_min_y
+        # initialize indices
+        ind0 = ind0_start_x + (pos_y - offset_min_y)
+        ind1 = ind1_start_x + offset_min_y
+
+        # update histograms
+        for o_x in range(offset_min_x, offset_max_x + 1):
+            for o_y in range(offset_min_y, offset_max_y):
+                # update histogram value 
+                slice_hist[slice_map[ind1]][labels[ind0]] += weights[ind1]
+                # update linear positions
+                ind0 -= 1
+                ind1 += 1
+            # update last histogram value
+            slice_hist[slice_map[ind1]][labels[ind0]] += weights[ind1]
+            # update linear positions
+            ind0 = ind0 + offset_range_y - size0_y
+            ind1 = ind1 - offset_range_y + size1_y
+        
+        # smooth bins
+        if use_smoothing:
+            for o in range(0, 2 * n_ori):
+                sh = slice_hist[o]
+                temp_conv = conv_in_place_1D(sh, smoothing_kernel)
+                for nh in range(0, size_hist):
+                    slice_hist[o][nh] = temp_conv[nh]
+        
+        # L1 normalize bins
+        for o in range(0, 2 * n_ori):
+            sum_slice_hist = np.sum(slice_hist[o])
+            if sum_slice_hist != 0:
+                slice_hist[o] /= sum_slice_hist
+
+        # compute circular gradients - initialize histograms
+        hist_left.fill(0)
+        hist_right.fill(0)
+        for o in range(0, n_ori):
+            hist_left += slice_hist[o]
+            hist_right += slice_hist[o+n_ori]
+
+        # compute circular gradients - spin the disc
+        for o in range(0, n_ori):
+            gradients[o][n] = X2_distance(hist_left, hist_right)
+            hist_left -= slice_hist[o]
+            hist_left += slice_hist[o+n_ori]
+            hist_right += slice_hist[o]
+            hist_right -= slice_hist[o+n_ori]
+        
+        # update position
+        pos_y += 1
+        if pos_y == pos_bound_y:
+            # reset y position, increment x position
+            pos_y = pos_start_y
+            pos_x += 1
+            # update range of offset_x
+            if (pos_x + 1) > size0_x:
+                offset_min_x = pos_x + 1 - size0_x
+            else:
+                offset_min_x = 0
+
+            if pos_x < size1_x:
+                offset_max_x = pos_x
+            else:
+                offset_max_x = size1_x - 1
+            
+            ind0_start_x = (pos_x - offset_min_x) * size0_y
+            ind1_start_x = (offset_min_x) * size1_y
     return gradients
 
+def X2_distance(m0, m1):
+    dist = 0
+    size = m0.size
+    for n in range(0, size):
+        diff = m1[n] - m0[n]
+        summ = m1[n] + m0[n]
+        if diff != 0:
+            dist += diff * diff / summ
+    return dist / 2
 
-
+def conv_in_place_1D(m0, m1):
+    """Compute convolution in place (for 1D matrices)"""
+    # get size of each matrix
+    size0 = m0.size()
+    size1 = m1.size()
+    # set dimensions for result matrix no larger than left input
+    if (size0 > 0) and (size1 > 0):
+        size = size0
+    else:
+        size = 0
+    # set start position for result matrix no larger than left input
+    pos_start = size1/2
+    # initialize position in result
+    pos = pos_start
+    m = np.zeros((m0.shape))
+    for n in range(0, size):
+        # compute range of offset
+        if (pos + 1) > size0:
+            offset_min = pos + 1 - size0
+        else:
+            offset_min = 0
+        
+        if pos < size1:
+            offset_max = pos
+        else:
+            offset_max = size1 - 1
+        
+        # multiply and add corresponing elements
+        ind0 = pos - offset_min
+        ind1 = offset_min
+        while ind1 <= offset_max:
+            # update result value
+            m[n] += m0[ind0] * m1[ind1]
+            # update linear positions
+            ind0 -= 1
+            ind1 += 1
+        # update position
+        pos += 1
+    return m
 
 def orientation_slice_map(size_x, size_y, n_ori):
     print("inside orientation_slice_map")
     # Initialize map
-    slice_map = np.zeros((size_x, size_y))
+    slice_map = np.zeros((size_x * size_y))
     # compute orientation of each element from center
+    ind = 0
     x = -(size_x) / 2
     for n_x in range(0,size_x):
         y = -(size_y) / 2
@@ -316,7 +476,8 @@ def orientation_slice_map(size_x, size_y, n_ori):
             idx = int(math.floor(ori / math.pi * float(n_ori)))
             if idx >= (2 * n_ori):
                 idx = 2 * n_ori -1
-            slice_map[n_x][n_y] = idx
+            slice_map[ind] = idx
+            ind += 1
             y += 1
         x += 1
     print("before slicemap output")

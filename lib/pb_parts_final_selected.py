@@ -93,7 +93,9 @@ def pb_parts_final_selected(L, a, b):
     # compute bg at each radius
     print("computing bg's")
     bg_r3 = hist_gradient_2D(Lq, r_bg[0], n_ori, bg_smooth_kernel)
-    bg_r5 = hist_gradient_2D(Lq, r_bg[1], n_ori, bg_smooth_kernel)
-    bg_r10 = hist_gradient_2D(Lq, r_bg[2], n_ori, bg_smooth_kernel)
+    # bg_r5 = hist_gradient_2D(Lq, r_bg[1], n_ori, bg_smooth_kernel)
+    # bg_r10 = hist_gradient_2D(Lq, r_bg[2], n_ori, bg_smooth_kernel)
+    print ("after bg_r3 computing")
+    print (bg_r3.shape)
 
     return [0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0]
