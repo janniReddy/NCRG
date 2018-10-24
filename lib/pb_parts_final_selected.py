@@ -64,31 +64,22 @@ def pb_parts_final_selected(L, a, b):
     textons, t_assign = compute_textons(g_im, border, filters, k)
     print("after compute_textons called")
     print(textons.shape)
-    print(t_assign.shape)
-    print((g_im == textons).all())
 
-    # writing textons object to a file
-    fo = open("testing_map_obj2.txt", "w")
-    for i in range(0, textons.shape[0]):
-        for j in range(0, textons.shape[1]):
-            fo.write(textons[i][j].astype(str))
-            if j != textons.shape[1] - 1:
-                fo.write(",")
-        fo.write("\n")
-    fo.close()
-    print("after writing the textons object")
+    # # writing textons object to a file
+    # fo = open("testing_map_obj2.txt", "w")
+    # for i in range(0, textons.shape[0]):
+    #     for j in range(0, textons.shape[1]):
+    #         fo.write(textons[i][j].astype(str))
+    #         if j != textons.shape[1] - 1:
+    #             fo.write(",")
+    #     fo.write("\n")
+    # fo.close()
+    # print("after writing the textons object")
 
     # compute bg histogram smoothing kernel
     bg_smooth_kernel = gaussian(sigma = bg_smooth_sigma*num_L_bins)
     cga_smooth_kernel = gaussian(sigma = cg_smooth_sigma*num_a_bins)
     cgb_smooth_kernel = gaussian(sigma = cg_smooth_sigma*num_b_bins)
-
-    print(bg_smooth_kernel.shape)
-    print(cga_smooth_kernel.shape)
-    print(cgb_smooth_kernel.shape)
-    print(bg_smooth_kernel)
-    print(cga_smooth_kernel)
-    print(cgb_smooth_kernel)
 
     # compute bg at each radius
     print("computing bg's")
