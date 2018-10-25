@@ -1,5 +1,6 @@
+import numpy as np
 
-# def savgolBorder(a_n, z, ra, ra, theta, h, w, a_out):
+# def savgol_border(a_n, z, ra, ra, theta, h, w, a_out):
 #     ra = max(1.5, ra)
 #     rb = max(1.5, rb)
 #     ira2 = 1 / pow(ra, 2)
