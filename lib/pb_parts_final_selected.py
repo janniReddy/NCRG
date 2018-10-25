@@ -115,10 +115,11 @@ def pb_parts_final_selected(L, a, b):
         cgb_r20[n] = border_trim_2D(cgb_r20[n], border)
     
     # compute tg at each radius
+    np_empty = np.array([])
     print("computing tg's")
-    tg_r5 = hist_gradient_2D(t_assign, r_tg[0], n_ori)
-    tg_r10 = hist_gradient_2D(t_assign, r_tg[1], n_ori)
-    tg_r20 = hist_gradient_2D(t_assign, r_tg[2], n_ori)
+    tg_r5 = hist_gradient_2D(t_assign, r_tg[0], n_ori, np_empty)
+    tg_r10 = hist_gradient_2D(t_assign, r_tg[1], n_ori, np_empty)
+    tg_r20 = hist_gradient_2D(t_assign, r_tg[2], n_ori, np_empty)
     for n in range(0, n_ori):
         tg_r5[n] = border_trim_2D(tg_r5[n], border)
         tg_r10[n] = border_trim_2D(tg_r10[n], border)
